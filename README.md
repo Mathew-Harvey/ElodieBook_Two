@@ -28,13 +28,14 @@ This project is an interactive digital storybook titled **"The Beluga's Magic Oc
 
 ## This was the Original Story
 
-![Handwritten Story](/Images/OriginalStory.jpg)
+![Handwritten Story Part One](/Images/OGStoryOne.jpg)
+![Handwritten Story Part Two](/Images/OGStoryTwo.jpg)
 
 ---
 
 ## Link to the Book
 
-👉 **[Click here to view the interactive storybook online.](https://yourusername.github.io/BelugaMagicOceanPotion/)**
+👉 **[Click here to view the interactive storybook online.](https://mathew-harvey.github.io/ElodieBook_Two/)**
 
 ---
 
