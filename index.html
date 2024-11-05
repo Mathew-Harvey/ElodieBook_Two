@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Stew - By Elodie Harvey</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(45deg, #8b5e3c, #6b4423);
+            font-family: 'arial', sans-serif;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .book-container {
+            perspective: 2000px;
+            transform-style: preserve-3d;
+            width: min(60vw, calc(70vh / 1.4142));
+            height: calc(min(60vw, calc(70vh / 1.4142)) * 1.4142);
+            position: relative;
+            margin: 0 auto;
+            overflow: visible;
+        }
+
+        .book {
+            position: absolute;
+            transform-style: preserve-3d;
+            width: 100%;
+            height: 100%;
+            user-select: none;
+            transition: all 0.5s ease;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            transform-origin: center;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+        }
+
+        .book.opened {
+            width: 100%;
+            transform: translateX(0);
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.2),
+                0 0 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .page {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: all 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+            cursor: default;
+            pointer-events: auto;
+            background: white;
+            border-radius: 2px;
+            box-shadow:
+                0 4px 8px rgba(0, 0, 0, 0.1),
+                5px 5px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .page.turning {
+            transition: transform 0.5s ease;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-front,
+        .page-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            padding: min(5vw, 40px);
+            backface-visibility: hidden;
+            background: white;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .page-back {
+            transform: rotateY(180deg);
+        }
+
+        .spine {
+            position: absolute;
+            left: -20px;
+            width: 40px;
+            height: 100%;
+            background: linear-gradient(315deg, #0A4B6C, #137CBC, #1EA4C4, #25C4D5);            transform: rotateY(90deg) translateZ(-20px);
+            transform-origin: right;
+            z-index: 2;
+            border-radius: 2px 0 0 2px;
+            box-shadow: inset -2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .cover-page {
+            background: linear-gradient(315deg, #0A4B6C, #137CBC, #1EA4C4, #25C4D5);            color: white;
+            border-radius: 2px;
+        }
+
+        .page.turned {
+            transform: rotateY(-180deg);
+        }
+
+        .turn-area {
+            position: absolute;
+            width: 20%;
+            height: 100%;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .book.opened .turn-area {
+            opacity: 1;
+        }
+
+        .turn-area-right {
+            right: -2%;
+            background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.05));
+        }
+
+        .turn-area-left {
+            left: 90%;
+            background: linear-gradient(to left, transparent, rgba(0, 0, 0, 0.05));
+        }
+
+        .cover-title {
+            font-size: min(8vw, 48px);
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .cover-author {
+            font-size: min(4vw, 24px);
+            margin-top: 40px;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .cover-illustrator {
+            font-size: min(3vw, 18px);
+            text-align: center;
+        }
+
+        .story-text {
+            font-size: clamp(8px, calc(12px + 1vw), 16px);
+            /* Starts larger, scales down */
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 400px;
+            height: auto;
+            width: auto;
+            object-fit: contain;
+            border-radius: 10px;
+            display: block;
+            margin: 20px 0;
+        }
+
+        #coverImg {
+            width: 100%;
+            height: min(50vw, 400px);
+            object-fit: cover;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: clamp(12px, 2.5vw, 14px);
+            color: #666;
+        }
+
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+
+        /* Tablets and smaller laptops */
+        @media (max-width: 1024px) {
+            .book-container {
+                width: min(75vw, calc(75vh / 1.4142));
+                height: calc(min(75vw, calc(75vh / 1.4142)) * 1.4142);
+            }
+
+            .story-text {
+                font-size: clamp(14px, 2.5vw, 20px);
+            }
+
+            .turn-area {
+                width: 25%;
+            }
+        }
+
+        /* Mobile devices */
+        @media (max-width: 768px) {
+            .book-container {
+                width: min(85vw, calc(80vh / 1.4142));
+                height: calc(min(85vw, calc(80vh / 1.4142)) * 1.4142);
+            }
+
+            .book {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .book.opened {
+                transform: translateX(0);
+            }
+
+            .spine {
+                left: -15px;
+                width: 30px;
+            }
+
+            .page-front,
+            .page-back {
+                padding: 15px;
+            }
+
+            .story-text {
+                font-size: clamp(14px, 2vw, 16px);
+            }
+
+            .turn-area {
+                width: 30%;
+            }
+
+            .cover-title {
+                font-size: min(6vw, 36px);
+            }
+
+            .cover-author {
+                font-size: min(4vw, 20px);
+            }
+
+            .cover-illustrator {
+                font-size: min(3vw, 16px);
+            }
+
+            .page-number {
+                font-size: clamp(10px, 2vw, 12px);
+            }
+        }
+
+        /* Fold phones and small devices */
+        @media (max-width: 480px) {
+            .book-container {
+                width: min(90vw, calc(85vh / 1.4142));
+                height: calc(min(90vw, calc(85vh / 1.4142)) * 1.4142);
+            }
+
+            .book.opened {
+                width: 100%;
+                left: 0;
+                transform: translateX(0);
+            }
+
+            .spine {
+                left: -10px;
+                width: 20px;
+            }
+
+            .page-front,
+            .page-back {
+                padding: 12px;
+            }
+
+            .story-text {
+                font-size: clamp(12px, 2vw, 14px);
+            }
+
+            .turn-area {
+                width: 35%;
+            }
+
+            .cover-title {
+                font-size: min(7vw, 32px);
+            }
+
+            .cover-author {
+                font-size: min(5vw, 18px);
+            }
+
+            .cover-illustrator {
+                font-size: min(4vw, 14px);
+            }
+
+            .page-number {
+                font-size: 12px;
+                bottom: 10px;
+                right: 10px;
+            }
+        }
+
+        /* Landscape orientation */
+        @media (max-height: 480px) and (orientation: landscape) {
+            .book-container {
+                width: min(70vw, calc(90vh / 1.4142));
+                height: calc(min(70vw, calc(90vh / 1.4142)) * 1.4142);
+            }
+
+            .page-front,
+            .page-back {
+                padding: 10px;
+            }
+
+            .story-text {
+                font-size: clamp(12px, 2vh, 14px);
+            }
+
+            img {
+                height: clamp(100px, 40vh, 200px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="book-container" aria-label="Interactive storybook: Snake Stew">
+        <div class="book">
+            <div class="spine" aria-hidden="true"></div>
+
+            <!-- Cover -->
+            <div class="page" id="cover">
+                <div class="page-front cover-page">
+                    <h1 class="cover-title">The Beluga's Magic Ocean Potion</h1>
+                    <img src="Images\Cover.jpg" id="coverImg" alt="A magical forest scene with an owl cooking" />
+                    <p class="cover-author">Written by Elodie Harvey</p>
+                    <p class="cover-illustrator">Illustrated by Dali AI</p>
+                </div>
+                <div class="page-back">
+                    <img src="Images/pageOne.jpg" alt="A clever owl in the forest" />
+                    <p class="story-text">
+                        Many moons ago in the ocean deep, A clever fish swam out of a hole and said
+                        "For a whale potion, you must add a fin!"</p>
+                    <span class="page-number" aria-label="Page 1">1</span>
+                </div>
+            </div>
+
+            <!-- Page 2-3 -->
+            <div class="page">
+                <div class="page-front">
+                    <img src="Images/pageTwo.jpg" alt="A fish jumping from a puddle" />
+                    <p class="story-text">Next, a jellyfish drifted from its hole
+                        And shared its secret for the potion true:
+                        "The best thing to add is a mermaid's tail!"</p>
+                    <span class="page-number" aria-label="Page 2">2</span>
+                </div>
+                <div class="page-back">
+                    <img src="Images/pageThree.jpg" alt="A vulture flying like a stingray" />
+                    <p class="story-text">After that, a flying fish soared up high
+                        And called down to all who swam below:
+                        "The best thing for whale potion is a wig!"</p>
+                    <span class="page-number" aria-label="Page 3">3</span>
+                </div>
+            </div>
+
+            <!-- Page 4-5 -->
+            <div class="page">
+                <div class="page-front">
+                    <img src="Images/pageFour.jpg" alt="An octopus in an ink barrel" />
+                    <p class="story-text">Finally, the curious beluga whale
+                        Wanted to add his blue whale friend's song too.
+                        But when the animals told him to taste it,</p>
+                    <span class="page-number" aria-label="Page 4">4</span>
+                </div>
+                <div class="page-back">
+                    <img src="Images/pageFive.jpg" alt="Animals gathering around a glowing pot" />
+                    <p class="story-text">"Yucky!" he cried with a swish of his tail,
+                        And swam away to the deepest sea,
+                        Leaving the potion brewing behind.
+                    </p>
+                    <span class="page-number" aria-label="Page 5">5</span>
+                </div>
+            </div>
+
+            <!-- Final Pages -->
+            <div class="page">
+                <div class="page-front">
+                    <img src="Images/pageSix.jpg" alt="A magical glowing forest" />
+                    <p class="story-text">"YUCK! You've poisoned me" he hooted as he flew into the bush. The tawny mouth
+                        owl was never
+                        seen again. The End. </p>
+                    <span class="page-number" aria-label="Page 6">6</span>
+                </div>
+                <div class="page-back">
+                    <div style="text-align: center; margin-top: 300px;">
+                        <h2>The End</h2>
+                        <p class="story-text">Thank you for reading!</p>
+                    </div>
+                    <span class="page-number" aria-label="Page 7">7</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const book = document.querySelector('.book');
+            const pages = document.querySelectorAll('.page');
+            let currentPage = 0;
+            let startX = 0;
+            let isDragging = false;
+            let isAnimating = false;
+            let isBookOpened = false;
+
+            // Add turn areas to all pages
+            pages.forEach((page, index) => {
+                const rightTurnArea = document.createElement('div');
+                rightTurnArea.className = 'turn-area turn-area-right';
+                rightTurnArea.setAttribute('role', 'button');
+                rightTurnArea.setAttribute('tabindex', '0');
+                rightTurnArea.setAttribute('aria-label', `Turn to page ${index * 2 + 2}`);
+
+                const leftTurnArea = document.createElement('div');
+                leftTurnArea.className = 'turn-area turn-area-left';
+                leftTurnArea.setAttribute('role', 'button');
+                leftTurnArea.setAttribute('tabindex', '0');
+                leftTurnArea.setAttribute('aria-label', `Turn back to page ${index * 2}`);
+
+                // Add turn indicators
+                const rightIndicator = document.createElement('div');
+                rightIndicator.className = 'turn-indicator';
+                if (index === 0) rightIndicator.classList.add('initial-hint');
+                rightTurnArea.appendChild(rightIndicator);
+
+                const leftIndicator = document.createElement('div');
+                leftIndicator.className = 'turn-indicator';
+                leftTurnArea.appendChild(leftIndicator);
+
+                page.appendChild(rightTurnArea);
+                page.appendChild(leftTurnArea);
+            });
+
+            function initializeBook() {
+                // Set initial state
+
+                pages.forEach((page, index) => {
+                    page.style.zIndex = pages.length - index;
+                    if (index > 0) {
+                        page.classList.add('disabled');
+                    }
+                });
+
+                updatePageVisibility();
+            }
+            function turnPage(index, direction) {
+                if (isAnimating) return;
+
+                isAnimating = true;
+                const page = pages[index];
+                page.classList.add('turning');
+
+                if (direction === 'forward') {
+                    page.classList.add('turned');
+                    currentPage = index + 1;
+                } else if (direction === 'backward') {
+                    page.classList.remove('turned');
+                    currentPage = index;
+                }
+
+                setTimeout(() => {
+                    page.classList.remove('turning');
+                    isAnimating = false;
+                    updatePageVisibility();
+                }, 500);
+            }
+
+            function updatePageVisibility() {
+                // Ensure book is marked as opened when pages are turned
+                if (currentPage > 0 && !isBookOpened) {
+                    openBook();
+                }
+                pages.forEach((page, index) => {
+                    // Reset transforms and classes
+                    page.style.transform = page.classList.contains('turned') ? 'rotateY(-180deg)' : '';
+                    page.classList.remove('disabled');
+
+                    // Calculate z-index
+                    const baseZIndex = pages.length * 2;
+                    let zIndex;
+
+                    if (index < currentPage) {
+                        zIndex = index;
+                    } else if (index === currentPage) {
+                        zIndex = baseZIndex;
+                    } else {
+                        zIndex = baseZIndex - (index - currentPage);
+                    }
+
+                    page.style.zIndex = zIndex;
+
+                    // Update turn areas
+                    const rightTurnArea = page.querySelector('.turn-area-right');
+                    const leftTurnArea = page.querySelector('.turn-area-left');
+
+                    if (rightTurnArea) {
+                        const canTurnForward = index === currentPage && currentPage < pages.length - 1;
+                        rightTurnArea.style.pointerEvents = canTurnForward ? 'auto' : 'none';
+                        rightTurnArea.style.opacity = canTurnForward ? '1' : '0';
+                    }
+
+                    if (leftTurnArea) {
+                        const canTurnBackward = index === currentPage - 1;
+                        leftTurnArea.style.pointerEvents = canTurnBackward ? 'auto' : 'none';
+                        leftTurnArea.style.opacity = canTurnBackward ? '1' : '0';
+                    }
+
+                    // Enable/disable pages based on current page
+                    if (index < currentPage - 1 || index > currentPage + 1) {
+                        page.classList.add('disabled');
+                    }
+                });
+            }
+            // Replace the click event handler with this:
+            function openBook() {
+                if (!isBookOpened) {
+                    isBookOpened = true;
+                    book.classList.add('opened');
+                    updatePageVisibility();
+                }
+            }
+
+            // Click event for opening the book - more specific targeting
+            book.addEventListener('click', (e) => {
+                // Only trigger if clicking on the cover page when book is closed
+                if (!isBookOpened &&
+                    e.target.closest('#cover') &&
+                    !e.target.classList.contains('turn-area')) {
+                    openBook();
+                }
+            });
+
+            // Handle touch events
+            book.addEventListener('touchstart', (e) => {
+                if (isAnimating) return;
+                startX = e.touches[0].clientX;
+                isDragging = true;
+            }, { passive: true });
+
+            book.addEventListener('touchmove', (e) => {
+                if (!isDragging || isAnimating) return;
+                const currentX = e.touches[0].clientX;
+                const diff = currentX - startX;
+
+                // Add visual feedback during drag
+                const page = pages[currentPage];
+                if (page) {
+                    if (diff < 0) {
+                        // Dragging forward
+                        const rotation = Math.max(-180, diff);
+                        page.style.transform = `rotateY(${rotation}deg)`;
+                    } else if (currentPage > 0) {
+                        // Dragging backward
+                        const prevPage = pages[currentPage - 1];
+                        const rotation = Math.min(0, -180 + (diff / 2));
+                        prevPage.style.transform = `rotateY(${rotation}deg)`;
+                    }
+                }
+            }, { passive: true });
+
+            book.addEventListener('touchend', (e) => {
+                if (!isDragging) return;
+
+                const currentX = e.changedTouches[0].clientX;
+                const diff = currentX - startX;
+                const threshold = 50;
+
+                if (Math.abs(diff) > threshold) {
+                    if (diff > 0 && currentPage > 0) {
+                        // Swipe right - go back
+                        turnPage(currentPage - 1, 'backward');
+                    } else if (diff < 0 && currentPage < pages.length - 1) {
+                        // Swipe left - go forward
+                        turnPage(currentPage, 'forward');
+                    }
+                } else {
+                    // Reset page position if threshold not met
+                    updatePageVisibility();
+                }
+
+                isDragging = false;
+            });
+
+
+            function announcePageTurn(pageNumber) {
+                let liveRegion = document.getElementById('page-turn-announcement');
+                if (!liveRegion) {
+                    liveRegion = document.createElement('div');
+                    liveRegion.id = 'page-turn-announcement';
+                    liveRegion.className = 'sr-only';
+                    liveRegion.setAttribute('aria-live', 'polite');
+                    document.body.appendChild(liveRegion);
+                }
+
+                const pageNumbers = pageNumber * 2 === 0 ? 'Cover' : `Pages ${pageNumber * 2}-${pageNumber * 2 + 1}`;
+                liveRegion.textContent = `Now viewing ${pageNumbers}`;
+            }
+
+            // Click and keyboard handlers
+            document.querySelectorAll('.turn-area-right').forEach((area, index) => {
+                area.addEventListener('click', () => turnPage(index, 'forward'));
+                area.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        turnPage(index, 'forward');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.turn-area-left').forEach((area, index) => {
+                area.addEventListener('click', () => turnPage(index, 'backward'));
+                area.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        turnPage(index, 'backward');
+                    }
+                });
+            });
+
+            // Handle keyboard navigation through pages
+            document.addEventListener('keydown', (e) => {
+                if (isAnimating) return;
+
+                switch (e.key) {
+                    case 'ArrowRight':
+                    case 'PageDown':
+                        if (currentPage < pages.length - 1) {
+                            e.preventDefault();
+                            turnPage(currentPage, 'forward');
+                        }
+                        break;
+                    case 'ArrowLeft':
+                    case 'PageUp':
+                        if (currentPage > 0) {
+                            e.preventDefault();
+                            turnPage(currentPage - 1, 'backward');
+                        }
+                        break;
+                    case 'Home':
+                        e.preventDefault();
+                        while (currentPage > 0) {
+                            turnPage(currentPage - 1, 'backward');
+                        }
+                        break;
+                    case 'End':
+                        e.preventDefault();
+                        while (currentPage < pages.length - 1) {
+                            turnPage(currentPage, 'forward');
+                        }
+                        break;
+                }
+            });
+
+            // Initialize the book
+            initializeBook();
+        });
+    </script>
+
+</body>
+
+</html>
